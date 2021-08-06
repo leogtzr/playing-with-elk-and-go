@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
+	"reflect"
 
-	"github.com/olivere/elastic"
+	"github.com/olivere/elastic/v7"
 )
 
 type Account struct {
@@ -80,7 +81,7 @@ func main() {
 	put1, err := client.Index().
 		Index("accounts").
 		Type("_doc").
-		Id("995533").
+		Id("125533").
 		BodyJson(account1).
 		Do(ctx)
 
@@ -108,4 +109,27 @@ func main() {
 		panic(err)
 	}
 	fmt.Printf("Indexed account %s to index %s, type %s\n", put1.Id, put1.Index, put1.Type)
+
+	allQuery := elastic.NewMatchAllQuery()
+	// client.Search().Index("accounts").Query()
+	searchResult, err := client.Search().
+		Index("accounts"). // search in index "accounts"
+		Query(allQuery).   // specify the query
+		// Sort("user", true). // sort by "user" field, ascending
+		// From(0).Size(10).   // take documents 0-9
+		Pretty(true). // pretty print request and response JSON
+		Do(ctx)       // execute
+	if err != nil {
+		// Handle error
+		panic(err)
+	}
+
+	fmt.Println(searchResult)
+
+	var acc Account
+	for _, item := range searchResult.Each(reflect.TypeOf(acc)) {
+		if t, ok := item.(Account); ok {
+			fmt.Printf("Account by %s: %s\n", t.FirstName, t.LastName)
+		}
+	}
 }
